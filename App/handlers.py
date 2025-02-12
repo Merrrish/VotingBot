@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, types, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Command, ChatType
@@ -13,9 +13,9 @@ load_dotenv()
 # Получаем токены из .env
 API_TOKEN = os.getenv("API_TOKEN")
 
-# Инициализация бота и диспетчера
+# Инициализация бота и роутера
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
+router = Router()
 
 # Хранилище результатов голосов
 poll_results = {}
@@ -25,7 +25,7 @@ class Vote(StatesGroup):
     nname = State()  # Состояние для хранения никнейма пользователя
 
 # Обработчик команды /vote
-@dp.message(Command('vote'), ChatType.supergroup)
+@router.message(Command('vote'), ChatType.supergroup)
 async def vote(message: types.Message, state: FSMContext):
     if not message.reply_to_message:
         await message.answer("Пожалуйста, используйте команду /vote в ответ на сообщение пользователя, которого хотите исключить.")
@@ -73,7 +73,7 @@ async def vote(message: types.Message, state: FSMContext):
         await message.answer(f"Пользователь {data['nname']} не будет исключен.")
 
 # Обработчик ответов на опросы
-@dp.poll_answer()
+@router.poll_answer()
 async def handle_poll_answer(poll_answer: types.PollAnswer):
     poll_id = poll_answer.poll_id
     option_ids = poll_answer.option_ids
@@ -86,14 +86,3 @@ async def handle_poll_answer(poll_answer: types.PollAnswer):
             poll_results[poll_id]["Нет"] += 1
 
     print(f"Голос получен: {poll_results}")
-
-# Основная функция для запуска бота
-async def main():
-    await dp.start_polling()
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Exit")
