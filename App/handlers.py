@@ -1,32 +1,33 @@
 import asyncio
-
 from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, Poll, PollOption, PollAnswer
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from config import API_TOKEN
-    
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+API_TOKEN = os.getenv("API_TOKEN")
+
 bot = Bot(token=API_TOKEN)
 
 router = Router()
-router.message.filter(F.chat.type == "supergroup", F.from_user.id == 6568586074) # Бот будет работать только в группе и будет принимать команды только от пользователя с конкретным ID
+router.message.filter(F.chat.type == "supergroup", F.from_user.id == 6568586074)
 
-poll_results = {} # Хранилище результатов голосов
+poll_results = {}
 
-class Vote(StatesGroup): 
-    nname = State() # Состояние в котором хранится ник пользователя
-    
+class Vote(StatesGroup):
+    nname = State()
+
 @router.message(Command('vote'))
 async def vote(message: Message, state: FSMContext):
-    
     if not message.reply_to_message:
         await message.answer("Пожалуйста, используйте команду /vote в ответ на сообщение пользователя, которого хотите исключить.")
         return
 
     user_to_vote = message.reply_to_message.from_user
-
-    # Сохранение данных о пользователе, которого хотят исключить
     await state.update_data(user_id=user_to_vote.id, nname=user_to_vote.username)
     data = await state.get_data()
     
@@ -39,7 +40,6 @@ async def vote(message: Message, state: FSMContext):
     )
     
     poll_results[poll_message.poll.id] = {"Да": 0, "Нет": 0}
-    print(f"Инициализация результатов для опроса {poll_message.poll.id}: {poll_results[poll_message.poll.id]}")
     
     await asyncio.sleep(5)
     await state.clear()
@@ -71,11 +71,8 @@ async def handle_poll_answer(poll_answer: PollAnswer):
     poll_id = poll_answer.poll_id
     option_ids = poll_answer.option_ids
 
-    # Обновление результатов голосования
     if poll_id in poll_results:
         if 0 in option_ids:
             poll_results[poll_id]["Да"] += 1
         if 1 in option_ids:
             poll_results[poll_id]["Нет"] += 1
-
-    print(f"Голос получен: {poll_results}")
